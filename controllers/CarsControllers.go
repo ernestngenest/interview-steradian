@@ -66,20 +66,21 @@ func UpdateCar(c *gin.Context) {
 	id := c.Param("id")
 	var car models.Car
 
+	//cari car nya
 	if err := configs.DB.First(&car, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Car not found",
 		})
 		return
 	}
-
+	//kalo gada car nya throw error
 	if err := c.ShouldBindJSON(&car); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
-
+	//save car yang baru
 	result := configs.DB.Save(&car)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

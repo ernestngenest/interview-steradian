@@ -52,7 +52,7 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// Parse dates
+	// Parse date
 	layout := "2006-01-02"
 	pickupDate, err := time.Parse(layout, orderReq.PickupDate)
 	if err != nil {
@@ -129,7 +129,7 @@ func UpdateOrder(c *gin.Context) {
 	id := c.Param("id")
 	var order models.Order
 
-	// validasi
+	// validasi order exists
 	if err := configs.DB.First(&order, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Order not found",
@@ -137,29 +137,54 @@ func UpdateOrder(c *gin.Context) {
 		return
 	}
 
-	// masukan date original
-	originalOrderDate := order.OrderDate
-
-	// update data setelah validasi
-	if err := c.ShouldBindJSON(&order); err != nil {
+	// Bind request data
+	var orderReq models.OrderRequest
+	if err := c.ShouldBindJSON(&orderReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	// verifikasi car yg di update exist
-	if order.CarID != 0 {
+	// Parse dates
+	layout := "2006-01-02"
+
+	// Parse pickup date
+	pickupDate, err := time.Parse(layout, orderReq.PickupDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid pickup date format. Use YYYY-MM-DD",
+		})
+		return
+	}
+
+	// Parse dropoff date
+	dropoffDate, err := time.Parse(layout, orderReq.DropoffDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid dropoff date format. Use YYYY-MM-DD",
+		})
+		return
+	}
+
+	// Update order fields
+	if orderReq.CarID != 0 {
+		// Verify car exists if CarID is provided
 		var car models.Car
-		if err := configs.DB.First(&car, order.CarID).Error; err != nil {
+		if err := configs.DB.First(&car, orderReq.CarID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "Invalid car ID",
 			})
 			return
 		}
+		order.CarID = orderReq.CarID
 	}
 
-	order.OrderDate = originalOrderDate
+	// Update other fields
+	order.PickupDate = pickupDate
+	order.DropoffDate = dropoffDate
+	order.PickupLocation = orderReq.PickupLocation
+	order.DropoffLocation = orderReq.DropoffLocation
 
 	// Validate date
 	if order.PickupDate.After(order.DropoffDate) {

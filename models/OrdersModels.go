@@ -17,7 +17,6 @@ type Order struct {
 	Car             Car       `json:"-" gorm:"foreignKey:CarID"`
 }
 
-// Custom JSON request structure
 type OrderRequest struct {
 	CarID           uint   `json:"car_id"`
 	OrderDate       string `json:"order_date"`
